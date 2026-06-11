@@ -1,0 +1,210 @@
+/* ============================================================
+   Codex — Design tokens
+   Dirección: biblioteca clásica pero futurista, etérea.
+   Marfil cálido + tinta carbón + ocre editorial; capas de vidrio.
+   ============================================================ */
+
+:root {
+  /* Tipografías */
+  --font-display: 'Fraunces Variable', 'Fraunces', Georgia, serif;
+  --font-ui: 'Literata Variable', 'Literata', Georgia, serif;
+  --font-reading: 'Literata Variable', Georgia, serif;
+
+  /* Radios — bordes muy redondeados en todo lo interactivo */
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 26px;
+  --r-xl: 36px;
+  --r-pill: 999px;
+
+  /* Sombras etéreas */
+  --shadow-sm: 0 1px 2px rgba(43, 38, 32, 0.06), 0 2px 8px rgba(43, 38, 32, 0.05);
+  --shadow-md: 0 2px 6px rgba(43, 38, 32, 0.07), 0 10px 28px rgba(43, 38, 32, 0.09);
+  --shadow-lg: 0 4px 12px rgba(43, 38, 32, 0.08), 0 24px 60px rgba(43, 38, 32, 0.14);
+  --shadow-float: 0 8px 32px rgba(43, 38, 32, 0.18), 0 2px 8px rgba(43, 38, 32, 0.08);
+
+  /* Movimiento */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.46, 0.64, 1);
+  --t-fast: 160ms;
+  --t-med: 280ms;
+  --t-slow: 480ms;
+
+  /* Safe areas iOS */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ---------- Tema: Marfil (claro, por defecto) ---------- */
+:root,
+[data-theme='marfil'] {
+  color-scheme: light;
+  --bg: #f4efe6;
+  --bg-grad: radial-gradient(120% 90% at 50% 0%, #faf6ed 0%, #f4efe6 55%, #ece5d6 100%);
+  --surface: #fbf8f1;
+  --surface-2: #f1ebdf;
+  --glass: rgba(251, 248, 241, 0.72);
+  --glass-border: rgba(43, 38, 32, 0.08);
+  --ink: #2b2620;
+  --ink-soft: #5d564a;
+  --ink-faint: #93897a;
+  --line: rgba(43, 38, 32, 0.1);
+  --accent: #b8860b;
+  --accent-soft: #e9c46a;
+  --accent-ink: #2b2620;
+  --highlight: rgba(233, 196, 106, 0.45);
+  --highlight-solid: #f3d986;
+  --positive: #6a8a5e;
+  --danger: #b3543f;
+  --cover-shadow: rgba(43, 38, 32, 0.22);
+}
+
+/* ---------- Tema: Sepia ---------- */
+[data-theme='sepia'] {
+  color-scheme: light;
+  --bg: #efe3cc;
+  --bg-grad: radial-gradient(120% 90% at 50% 0%, #f6ecd9 0%, #efe3cc 55%, #e5d6b8 100%);
+  --surface: #f7eeda;
+  --surface-2: #e9dcc2;
+  --glass: rgba(247, 238, 218, 0.72);
+  --glass-border: rgba(74, 59, 40, 0.1);
+  --ink: #443625;
+  --ink-soft: #6e5c43;
+  --ink-faint: #a08e70;
+  --line: rgba(74, 59, 40, 0.12);
+  --accent: #a3692c;
+  --accent-soft: #d9a05b;
+  --accent-ink: #3a2d1c;
+  --highlight: rgba(217, 160, 91, 0.4);
+  --highlight-solid: #ecc88f;
+  --positive: #74875a;
+  --danger: #ad5138;
+  --cover-shadow: rgba(74, 59, 40, 0.24);
+}
+
+/* ---------- Tema: Niebla (claro, bajo contraste) ---------- */
+[data-theme='niebla'] {
+  color-scheme: light;
+  --bg: #e9e8e3;
+  --bg-grad: radial-gradient(120% 90% at 50% 0%, #efeeea 0%, #e9e8e3 55%, #dfdeD8 100%);
+  --surface: #f0efeb;
+  --surface-2: #e2e1db;
+  --glass: rgba(240, 239, 235, 0.7);
+  --glass-border: rgba(80, 78, 72, 0.08);
+  --ink: #57544c;
+  --ink-soft: #7b7870;
+  --ink-faint: #a3a098;
+  --line: rgba(80, 78, 72, 0.1);
+  --accent: #8a8265;
+  --accent-soft: #b5ad8e;
+  --accent-ink: #44423a;
+  --highlight: rgba(181, 173, 142, 0.38);
+  --highlight-solid: #d4cdb2;
+  --positive: #7d8a72;
+  --danger: #a96b5c;
+  --cover-shadow: rgba(80, 78, 72, 0.18);
+}
+
+/* ---------- Tema: Noche (oscuro azul, luz de luna) ---------- */
+[data-theme='noche'] {
+  color-scheme: dark;
+  --bg: #0e1420;
+  --bg-grad: radial-gradient(120% 90% at 50% 0%, #16203230 0%, #0e1420 60%, #0a0f18 100%), #0e1420;
+  --surface: #161e2e;
+  --surface-2: #1d2738;
+  --glass: rgba(22, 30, 46, 0.66);
+  --glass-border: rgba(214, 224, 240, 0.1);
+  --ink: #d8e0ee;
+  --ink-soft: #9fadc4;
+  --ink-faint: #687a96;
+  --line: rgba(214, 224, 240, 0.1);
+  --accent: #9db8e8;
+  --accent-soft: #5b7cb8;
+  --accent-ink: #0e1420;
+  --highlight: rgba(157, 184, 232, 0.28);
+  --highlight-solid: #3b5278;
+  --positive: #8fb88a;
+  --danger: #d08770;
+  --cover-shadow: rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.32), 0 10px 28px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.36), 0 24px 60px rgba(0, 0, 0, 0.5);
+  --shadow-float: 0 8px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- Tema: Tinta (oscuro cálido, casi negro) ---------- */
+[data-theme='tinta'] {
+  color-scheme: dark;
+  --bg: #131110;
+  --bg-grad: radial-gradient(120% 90% at 50% 0%, #1c1916 0%, #131110 60%, #0d0c0b 100%);
+  --surface: #1d1a17;
+  --surface-2: #262220;
+  --glass: rgba(29, 26, 23, 0.7);
+  --glass-border: rgba(232, 226, 214, 0.09);
+  --ink: #e8e2d6;
+  --ink-soft: #b3aa99;
+  --ink-faint: #7d7567;
+  --line: rgba(232, 226, 214, 0.09);
+  --accent: #d4af6a;
+  --accent-soft: #9c7c45;
+  --accent-ink: #131110;
+  --highlight: rgba(212, 175, 106, 0.26);
+  --highlight-solid: #5c4a28;
+  --positive: #93a786;
+  --danger: #c97f64;
+  --cover-shadow: rgba(0, 0, 0, 0.55);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.32), 0 10px 28px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.36), 0 24px 60px rgba(0, 0, 0, 0.5);
+  --shadow-float: 0 8px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- Tema: Bruma (oscuro, bajo contraste) ---------- */
+[data-theme='bruma'] {
+  color-scheme: dark;
+  --bg: #23252a;
+  --bg-grad: radial-gradient(120% 90% at 50% 0%, #292b31 0%, #23252a 60%, #1e2025 100%);
+  --surface: #2b2d33;
+  --surface-2: #33353c;
+  --glass: rgba(43, 45, 51, 0.7);
+  --glass-border: rgba(184, 186, 192, 0.09);
+  --ink: #c6c8cd;
+  --ink-soft: #9a9ca3;
+  --ink-faint: #6f7178;
+  --line: rgba(184, 186, 192, 0.1);
+  --accent: #a9a08a;
+  --accent-soft: #7d7660;
+  --accent-ink: #1e2025;
+  --highlight: rgba(169, 160, 138, 0.22);
+  --highlight-solid: #4a463a;
+  --positive: #8a9982;
+  --danger: #b07c6a;
+  --cover-shadow: rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.28), 0 10px 28px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.32), 0 24px 60px rgba(0, 0, 0, 0.42);
+  --shadow-float: 0 8px 32px rgba(0, 0, 0, 0.46), 0 2px 8px rgba(0, 0, 0, 0.26);
+}
+
+/* ---------- Tema: Pergamino (claro, alto confort) ---------- */
+[data-theme='pergamino'] {
+  color-scheme: light;
+  --bg: #f8f4ea;
+  --bg-grad: linear-gradient(180deg, #fcf9f2 0%, #f8f4ea 40%, #f1ead9 100%);
+  --surface: #fdfbf5;
+  --surface-2: #f3eee1;
+  --glass: rgba(253, 251, 245, 0.74);
+  --glass-border: rgba(56, 48, 38, 0.07);
+  --ink: #383026;
+  --ink-soft: #665b4a;
+  --ink-faint: #9c9180;
+  --line: rgba(56, 48, 38, 0.09);
+  --accent: #7d6840;
+  --accent-soft: #c0a877;
+  --accent-ink: #2e2820;
+  --highlight: rgba(192, 168, 119, 0.36);
+  --highlight-solid: #e3d3a8;
+  --positive: #6a8a5e;
+  --danger: #b3543f;
+  --cover-shadow: rgba(56, 48, 38, 0.2);
+}
