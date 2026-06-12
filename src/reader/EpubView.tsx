@@ -32,10 +32,52 @@ export const EpubView = forwardRef<ViewHandle, Props>(function EpubView(
   const drawnHl = useRef(new Map<string, string>())
   const ttsCfi = useRef<string | null>(null)
   const locationsReady = useRef(false)
+  const lastLocation = useRef<{ cfi: string; index: number } | null>(null)
+
+  /** Caret sobre el primer texto visible del capítulo actual. */
+  const caretAtVisibleTop = (): { contents: Contents; caret: Range } | null => {
+    const rend = rendRef.current
+    if (!rend) return null
+    const contents = (rend.getContents() as unknown as Contents[])[0]
+    if (!contents) return null
+    const doc = contents.document
+    const vw = doc.documentElement.clientWidth
+    for (const [fx, fy] of [
+      [0.06, 0.04],
+      [0.12, 0.1],
+      [0.2, 0.18],
+      [0.5, 0.3],
+    ]) {
+      const r = doc.caretRangeFromPoint?.(vw * fx, doc.documentElement.clientHeight * fy)
+      if (r && r.startContainer.nodeType === Node.TEXT_NODE) return { contents, caret: r }
+    }
+    return null
+  }
 
   useImperativeHandle(ref, () => ({
     next: () => void rendRef.current?.next(),
     prev: () => void rendRef.current?.prev(),
+    speakFromTop: () => {
+      const hit = caretAtVisibleTop()
+      if (hit) startTtsFromPoint(hit.contents, hit.caret, false)
+    },
+    currentAnchor: async () => {
+      const loc = lastLocation.current
+      if (!loc) return null
+      let quote = ''
+      const hit = caretAtVisibleTop()
+      if (hit) {
+        const map = new TextMap(hit.contents.document.body)
+        const off = map.offsetOf(hit.caret.startContainer, hit.caret.startOffset)
+        if (off != null) quote = map.text.slice(off, off + 110).replace(/\s+\S*$/, '') + '…'
+      }
+      const book = bookRef.current
+      return {
+        anchor: { kind: 'epub' as const, cfi: loc.cfi, sectionIndex: loc.index },
+        quote,
+        chapter: book ? chapterFor(book, loc.index) : undefined,
+      }
+    },
   }))
 
   // ---------- montaje del libro ----------
@@ -63,6 +105,7 @@ export const EpubView = forwardRef<ViewHandle, Props>(function EpubView(
     )
 
     rendition.on('relocated', (loc: { start: { cfi: string; href: string; index: number } }) => {
+      lastLocation.current = { cfi: loc.start.cfi, index: loc.start.index }
       let progress = 0
       if (locationsReady.current) {
         progress = book.locations.percentageFromCfi(loc.start.cfi) ?? 0

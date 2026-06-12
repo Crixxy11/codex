@@ -229,6 +229,45 @@ class TtsController {
     void this.runLoop(gen)
   }
 
+  /**
+   * Salta ±n segundos estimando la duración de cada oración por su
+   * número de palabras (~170 ppm × velocidad). La granularidad real
+   * es la oración: suficiente para "adelantar/atrasar 10 s".
+   */
+  skipSeconds(seconds: number): void {
+    if (this.status === 'idle' || this.sentences.length === 0) return
+    const wordsPerSecond = (170 * this.rate) / 60
+    const secsOf = (s: string) =>
+      Math.max(1, (s.match(/[\p{L}\p{N}’'-]+/gu)?.length ?? 4) / wordsPerSecond)
+    let remaining = Math.abs(seconds)
+    let i = this.index
+    if (seconds > 0) {
+      while (i < this.sentences.length - 1 && remaining > 0) {
+        remaining -= secsOf(this.sentences[i])
+        i++
+      }
+    } else {
+      while (i > 0 && remaining > 0) {
+        i--
+        remaining -= secsOf(this.sentences[i])
+      }
+    }
+    if (i !== this.index) this.restartAt(i)
+  }
+
+  /** Cambia la voz en caliente: la oración actual se reinicia con ella. */
+  setVoice(voiceId: string): void {
+    if (this.voiceId === voiceId) return
+    this.voiceId = voiceId
+    this.cache.clear()
+    if (this.isAudioEngine && !this.audio) {
+      this.audio = new Audio()
+      this.audio.preload = 'auto'
+      this.audio.preservesPitch = true
+    }
+    if (this.status !== 'idle') this.restartAt(this.index)
+  }
+
   setRate(rate: number): void {
     this.rate = Math.min(2.5, Math.max(0.5, rate))
     useTtsState.setState({ rate: this.rate })

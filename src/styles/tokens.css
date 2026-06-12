@@ -57,6 +57,7 @@
   --positive: #6a8a5e;
   --danger: #b3543f;
   --cover-shadow: rgba(43, 38, 32, 0.22);
+  --card-grad: linear-gradient(168deg, #fdfbf5 0%, #faf6ec 38%, #f3ecdc 100%);
 }
 
 /* ---------- Tema: Sepia ---------- */
@@ -80,6 +81,7 @@
   --positive: #74875a;
   --danger: #ad5138;
   --cover-shadow: rgba(74, 59, 40, 0.24);
+  --card-grad: linear-gradient(168deg, #f9f1e0 0%, #f5ead4 38%, #ecdcbc 100%);
 }
 
 /* ---------- Tema: Niebla (claro, bajo contraste) ---------- */
@@ -103,6 +105,7 @@
   --positive: #7d8a72;
   --danger: #a96b5c;
   --cover-shadow: rgba(80, 78, 72, 0.18);
+  --card-grad: linear-gradient(168deg, #f2f1ed 0%, #edece7 38%, #e3e2db 100%);
 }
 
 /* ---------- Tema: Noche (oscuro azul, luz de luna) ---------- */
@@ -126,6 +129,7 @@
   --positive: #8fb88a;
   --danger: #d08770;
   --cover-shadow: rgba(0, 0, 0, 0.5);
+  --card-grad: linear-gradient(168deg, #20293d 0%, #161f30 45%, #0f1624 100%);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
   --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.32), 0 10px 28px rgba(0, 0, 0, 0.36);
   --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.36), 0 24px 60px rgba(0, 0, 0, 0.5);
@@ -153,6 +157,7 @@
   --positive: #93a786;
   --danger: #c97f64;
   --cover-shadow: rgba(0, 0, 0, 0.55);
+  --card-grad: linear-gradient(168deg, #25201b 0%, #1d1915 45%, #161310 100%);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
   --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.32), 0 10px 28px rgba(0, 0, 0, 0.36);
   --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.36), 0 24px 60px rgba(0, 0, 0, 0.5);
@@ -180,6 +185,7 @@
   --positive: #8a9982;
   --danger: #b07c6a;
   --cover-shadow: rgba(0, 0, 0, 0.4);
+  --card-grad: linear-gradient(168deg, #31343b 0%, #2b2d33 45%, #25272c 100%);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.28), 0 10px 28px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.32), 0 24px 60px rgba(0, 0, 0, 0.42);
@@ -207,4 +213,5 @@
   --positive: #6a8a5e;
   --danger: #b3543f;
   --cover-shadow: rgba(56, 48, 38, 0.2);
+  --card-grad: linear-gradient(168deg, #fefcf7 0%, #fbf7ec 38%, #f3ecda 100%);
 }

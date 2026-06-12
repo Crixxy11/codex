@@ -15,6 +15,14 @@ import { splitSentences, wordAt } from '../lib/text'
 export interface ViewHandle {
   next: () => void
   prev: () => void
+  /** Inicia el TTS desde el primer texto visible en pantalla. */
+  speakFromTop: () => void
+  /** Posición actual como anclaje (para notas sin selección). */
+  currentAnchor: () => Promise<{
+    anchor: import('../types').HighlightAnchor
+    quote: string
+    chapter?: string
+  } | null>
 }
 
 interface Props {
@@ -243,7 +251,21 @@ export const TextView = forwardRef<ViewHandle, Props>(function TextView(
     [flowMode, applyPage, events, reportPosition],
   )
 
-  useImperativeHandle(ref, () => ({ next: () => go(1), prev: () => go(-1) }), [go])
+  useImperativeHandle(
+    ref,
+    () => ({
+      next: () => go(1),
+      prev: () => go(-1),
+      speakFromTop: () => startTtsAt(firstVisibleOffset()),
+      currentAnchor: async () => {
+        const off = firstVisibleOffset()
+        const quote = text.slice(off, off + 110).replace(/\s+\S*$/, '') + '…'
+        return { anchor: { kind: 'text' as const, start: off, end: off }, quote }
+      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [go, firstVisibleOffset, text],
+  )
 
   // Scroll: reportar posición con debounce
   useEffect(() => {

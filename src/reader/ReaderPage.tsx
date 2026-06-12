@@ -7,14 +7,14 @@ import { SessionTracker } from '../lib/session'
 import { getDocumentSafe, type PdfDocument } from '../lib/pdf'
 import { useSettings, useT, fontCss } from '../stores/settings'
 import { useToasts } from '../stores/toast'
-import { tts, useTtsState } from '../tts/controller'
+import { tts } from '../tts/controller'
 import { loadSystemVoices } from '../tts/system'
 import type { ReadingLocation } from '../types'
 import type { ReaderEvents, SelectionInfo, TtsStartRequest } from './types'
 import { TextView, type ViewHandle } from './TextView'
 import { PdfView } from './PdfView'
 import { EpubView } from './EpubView'
-import { SelectionPopup, TtsBar, TypographySheet } from './chrome'
+import { SelectionPopup, ActionDock, TypographySheet } from './chrome'
 import { IconBack, IconAa, IconPages, IconScroll } from '../components/Icons'
 
 export default function ReaderPage() {
@@ -43,7 +43,6 @@ export default function ReaderPage() {
   const viewRef = useRef<ViewHandle>(null)
   const trackerRef = useRef<SessionTracker | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const ttsStatus = useTtsState((s) => s.status)
 
   // ---------- carga de contenido ----------
   useEffect(() => {
@@ -237,6 +236,48 @@ export default function ReaderPage() {
     [noteFor, book],
   )
 
+  // ---------- acciones del dock ----------
+
+  /** Play: desde la selección si existe; si no, desde lo visible arriba. */
+  const dockPlay = useCallback(() => {
+    if (sel?.speak) {
+      const fn = sel.speak
+      window.getSelection()?.removeAllRanges()
+      setSel(null)
+      fn()
+    } else {
+      viewRef.current?.speakFromTop()
+    }
+  }, [sel])
+
+  /** Nota: sobre la selección, o anclada a la posición actual del libro. */
+  const dockNote = useCallback(async () => {
+    if (sel) {
+      await createHighlight(true)
+      return
+    }
+    if (!book) return
+    const ca = await viewRef.current?.currentAnchor()
+    if (!ca) return
+    const hlId = uid()
+    await db.highlights.add({
+      id: hlId,
+      bookId: book.id,
+      quote: ca.quote,
+      anchor: ca.anchor,
+      chapter: ca.chapter,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+    await logEvent('highlight_created', book.id, { positional: true })
+    setNoteFor({ hlId })
+  }, [sel, book, createHighlight])
+
+  const dockHighlight = useCallback(() => {
+    if (sel) void createHighlight(false)
+    else show(t('reader.selectFirst'))
+  }, [sel, createHighlight, show, t])
+
   // ---------- variables visuales ----------
   const themeVars = useMemo(() => {
     const cs = getComputedStyle(document.documentElement)
@@ -345,7 +386,7 @@ export default function ReaderPage() {
         </button>
       </div>
 
-      <footer className={`reader-footer ${chromeVisible && ttsStatus === 'idle' ? '' : 'hidden'}`}>
+      <footer className={`reader-footer ${chromeVisible ? '' : 'hidden'}`}>
         <span style={{ fontVariantNumeric: 'tabular-nums' }}>{Math.round(progress * 100)}%</span>
         <div className="progress-track">
           <div className="progress-fill" style={{ width: `${progress * 100}%` }} />
@@ -386,7 +427,13 @@ export default function ReaderPage() {
 
       {noteFor && <NoteModal existing={noteFor.existing} onSave={saveNote} onClose={() => setNoteFor(null)} />}
       {typoOpen && <TypographySheet onClose={() => setTypoOpen(false)} />}
-      <TtsBar />
+      <ActionDock
+        onPlay={dockPlay}
+        onNote={() => void dockNote()}
+        onHighlight={dockHighlight}
+        hasSelection={!!sel}
+        bookLang={book.language}
+      />
     </div>
   )
 }

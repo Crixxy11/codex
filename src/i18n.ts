@@ -67,6 +67,7 @@ const es = {
   'reader.deleteHighlight': 'Quitar subrayado',
   'reader.addNote': 'Nota',
   'reader.loading': 'Abriendo el libro…',
+  'reader.selectFirst': 'Selecciona un texto para subrayar',
 
   // TTS
   'tts.voice': 'Voz',
@@ -223,6 +224,7 @@ const en: typeof es = {
   'reader.deleteHighlight': 'Remove highlight',
   'reader.addNote': 'Note',
   'reader.loading': 'Opening the book…',
+  'reader.selectFirst': 'Select some text to highlight',
 
   'tts.voice': 'Voice',
   'tts.speed': 'Speed',

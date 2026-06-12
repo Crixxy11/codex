@@ -9,6 +9,11 @@ export const READING_FONTS = [
   { id: 'vollkorn', label: 'Vollkorn', css: "'Vollkorn', Georgia, serif" },
   { id: 'crimson', label: 'Crimson Pro', css: "'Crimson Pro', Georgia, serif" },
   { id: 'fraunces', label: 'Fraunces', css: "'Fraunces Variable', Georgia, serif" },
+  { id: 'lora', label: 'Lora', css: "'Lora', Georgia, serif" },
+  { id: 'sourceserif', label: 'Source Serif', css: "'Source Serif 4 Variable', Georgia, serif" },
+  { id: 'spectral', label: 'Spectral', css: "'Spectral', Georgia, serif" },
+  { id: 'baskerville', label: 'Baskerville', css: "'Libre Baskerville', Georgia, serif" },
+  { id: 'newsreader', label: 'Newsreader', css: "'Newsreader Variable', Georgia, serif" },
 ] as const
 
 export const THEMES: ThemeId[] = ['marfil', 'pergamino', 'sepia', 'niebla', 'noche', 'tinta', 'bruma']

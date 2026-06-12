@@ -137,8 +137,43 @@ export const PdfView = forwardRef<ViewHandle, Props>(function PdfView(
         if (flowMode === 'paginated') goToPage(currentPageRef.current - 1)
         else hostRef.current?.scrollBy({ top: -hostRef.current.clientHeight * 0.9, behavior: 'smooth' })
       },
+      speakFromTop: () => {
+        const host = hostRef.current
+        // Primer span visible bajo el borde superior
+        if (host) {
+          const hostTop = host.getBoundingClientRect().top
+          for (const span of host.querySelectorAll<HTMLElement>('span[data-start]')) {
+            const r = span.getBoundingClientRect()
+            if (r.top >= hostTop + 50 && r.height > 0) {
+              const pageEl = span.closest('[data-page]') as HTMLElement | null
+              if (pageEl) {
+                void startTtsAt(Number(pageEl.dataset.page), Number(span.dataset.start))
+                return
+              }
+            }
+          }
+        }
+        void startTtsAt(currentPageRef.current, 0)
+      },
+      currentAnchor: async () => {
+        const page = currentPageRef.current
+        let quote = ''
+        try {
+          const pt = await getPageText(pdf, page)
+          quote = pt.text.slice(0, 110).replace(/\s+\S*$/, '') + '…'
+        } catch {
+          /* sin texto extraíble */
+        }
+        return {
+          anchor: { kind: 'pdf' as const, page, start: 0, end: 0 },
+          quote,
+          chapter: `p. ${page}`,
+        }
+      },
     }),
-    [flowMode, goToPage],
+    // startTtsAt se declara más abajo; el handle solo se invoca tras render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [flowMode, goToPage, pdf],
   )
 
   // En modo scroll: restaurar posición inicial y activar el rango visible

@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useSettings, useT, READING_FONTS, THEMES, fontCss } from '../stores/settings'
 import { useTtsState, tts } from '../tts/controller'
+import { listSystemVoices } from '../tts/system'
+import { listPiperVoices } from '../tts/piper'
+import type { TtsVoiceInfo } from '../tts/types'
 import {
   IconHighlighter,
   IconNote,
@@ -11,9 +14,8 @@ import {
   IconPlay,
   IconPause,
   IconStop,
-  IconSkipBack,
-  IconSkipFwd,
   IconTrash,
+  IconCheck,
 } from '../components/Icons'
 
 // ---------- Popup de selección ----------
@@ -83,16 +85,41 @@ export function SelectionPopup({ rect, onHighlight, onNote, onSpeak, onDelete, o
   )
 }
 
-// ---------- Barra TTS ----------
+// ---------- Dock de acciones de lectura ----------
 
 const RATES = [0.5, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.25, 2.5]
 
-export function TtsBar() {
+interface DockProps {
+  /** Iniciar lectura (desde selección o desde lo visible). */
+  onPlay: () => void
+  onNote: () => void
+  onHighlight: () => void
+  hasSelection: boolean
+  bookLang?: string
+}
+
+export function ActionDock({ onPlay, onNote, onHighlight, hasSelection, bookLang }: DockProps) {
   const status = useTtsState((s) => s.status)
   const rate = useTtsState((s) => s.rate)
-  const setTts = useSettings((s) => s.setTts)
+  const { tts: ttsSettings, setTts, lang } = useSettings()
   const t = useT()
-  if (status === 'idle') return null
+  const [voicesOpen, setVoicesOpen] = useState(false)
+  const [voices, setVoices] = useState<TtsVoiceInfo[] | null>(null)
+  const active = status !== 'idle'
+
+  useEffect(() => {
+    if (!voicesOpen || voices) return
+    void (async () => {
+      const [piper, sys] = await Promise.all([listPiperVoices(), listSystemVoices()])
+      const want = (bookLang ?? lang).slice(0, 2).toLowerCase()
+      const ready = piper.filter((v) => v.downloaded)
+      const sysSorted = [
+        ...sys.filter((v) => v.lang === want),
+        ...sys.filter((v) => v.lang !== want),
+      ].slice(0, 14 - ready.length)
+      setVoices([...ready, ...sysSorted])
+    })()
+  }, [voicesOpen, voices, bookLang, lang])
 
   const cycleRate = () => {
     const i = RATES.findIndex((r) => r >= rate - 0.01)
@@ -101,25 +128,103 @@ export function TtsBar() {
     setTts({ rate: next })
   }
 
+  const pickVoice = (v: TtsVoiceInfo) => {
+    setTts({ voiceId: v.id, engine: v.engine })
+    tts.setVoice(v.id)
+    setVoicesOpen(false)
+  }
+
   return (
-    <div className="tts-bar" role="toolbar" aria-label="TTS">
-      <span className={`pulse ${status === 'playing' ? 'playing' : ''}`} />
-      <button className="icon-btn" onClick={() => tts.skip(-1)} aria-label="←">
-        <IconSkipBack />
+    <div className={`action-dock glass ${active ? 'active' : ''}`} role="toolbar">
+      {/* Nota — siempre presente */}
+      <button className="dock-btn" onClick={onNote} title={t('reader.addNote')}>
+        <IconNote />
       </button>
-      <button className="play-btn" onClick={() => tts.toggle()} aria-label="play/pause">
-        {status === 'playing' ? <IconPause /> : status === 'loading' ? <Spinner /> : <IconPlay />}
+
+      {/* Grupo de audio desplegable */}
+      <div className={`dock-cluster ${active ? 'open' : ''}`}>
+        <button
+          className="dock-btn"
+          onClick={() => setVoicesOpen((v) => !v)}
+          title={t('tts.voice')}
+        >
+          <IconSpeak />
+        </button>
+        <button className="dock-btn" onClick={() => tts.skipSeconds(-10)} title="−10 s">
+          <Seek10 back />
+        </button>
+      </div>
+
+      {/* Play / pausa — el corazón del dock */}
+      <button
+        className="dock-play"
+        onClick={() => (active ? tts.toggle() : onPlay())}
+        aria-label={status === 'playing' ? 'pause' : 'play'}
+      >
+        {status === 'loading' ? <Spinner /> : status === 'playing' ? <IconPause /> : <IconPlay />}
       </button>
-      <button className="icon-btn" onClick={() => tts.skip(1)} aria-label="→">
-        <IconSkipFwd />
+
+      <div className={`dock-cluster ${active ? 'open' : ''}`}>
+        <button className="dock-btn" onClick={() => tts.skipSeconds(10)} title="+10 s">
+          <Seek10 />
+        </button>
+        <button className="dock-rate" onClick={cycleRate} title={t('tts.speed')}>
+          {rate.toFixed(rate % 1 === 0 ? 0 : 2).replace(/0+$/, '').replace(/\.$/, '')}×
+        </button>
+        <button className="dock-btn" onClick={() => tts.stop()} title="stop">
+          <IconStop width={17} height={17} />
+        </button>
+      </div>
+
+      {/* Subrayado — siempre presente */}
+      <button
+        className="dock-btn"
+        onClick={onHighlight}
+        title={t('reader.highlight')}
+        style={{ opacity: hasSelection ? 1 : 0.45 }}
+      >
+        <IconHighlighter />
       </button>
-      <button className="rate-btn" onClick={cycleRate} title={t('tts.speed')}>
-        {rate.toFixed(rate % 1 === 0 ? 0 : 2).replace(/0$/, '')}×
-      </button>
-      <button className="icon-btn" onClick={() => tts.stop()} aria-label="stop">
-        <IconStop />
-      </button>
+
+      {/* Selector de voz */}
+      {voicesOpen && (
+        <div className="voice-pop">
+          <div className="voice-pop-title">{t('tts.voice')}</div>
+          {!voices && <div className="voice-pop-empty">…</div>}
+          {voices?.map((v) => {
+            const selected = ttsSettings.voiceId === v.id
+            return (
+              <button
+                key={v.id}
+                className={`voice-pop-row ${selected ? 'sel' : ''}`}
+                onClick={() => pickVoice(v)}
+              >
+                <span className="vp-name">{v.name}</span>
+                <span className="vp-meta">
+                  {v.langLabel}
+                  {v.engine === 'piper' ? ' · ♪' : ''}
+                </span>
+                {selected && <IconCheck width={15} height={15} />}
+              </button>
+            )
+          })}
+          {voices?.length === 0 && <div className="voice-pop-empty">—</div>}
+        </div>
+      )}
     </div>
+  )
+}
+
+/** Icono de salto de 10 s (flecha circular con el número). */
+function Seek10({ back = false }: { back?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={back ? { transform: 'scaleX(-1)' } : undefined}>
+      <path d="M12 4.5a7.5 7.5 0 1 1-7.3 9.2" />
+      <path d="M12 1.8v5.4l3.2-2.7z" fill="currentColor" stroke="none" />
+      <text x="12" y="15.6" textAnchor="middle" fontSize="7.4" fill="currentColor" stroke="none" fontFamily="inherit" fontWeight="700" style={back ? { transform: 'scaleX(-1)', transformOrigin: '12px 12px' } : undefined}>
+        10
+      </text>
+    </svg>
   )
 }
 
