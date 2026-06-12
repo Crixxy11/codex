@@ -68,6 +68,33 @@ export const PdfView = forwardRef<ViewHandle, Props>(function PdfView(
   currentPageRef.current = currentPage
   const [ttsRange, setTtsRange] = useState<{ page: number; start: number; end: number } | null>(null)
   const pageRefs = useRef(new Map<number, HTMLDivElement>())
+  // Rango de páginas montadas con render activo (modo scroll). Se calcula
+  // desde la posición de scroll — sin IntersectionObserver, que no
+  // dispara en pestañas ocultas y es poco fiable entre navegadores.
+  const [activeRange, setActiveRange] = useState<{ from: number; to: number }>({
+    from: Math.max(1, initialPage - 2),
+    to: initialPage + 3,
+  })
+
+  const computeActiveRange = useCallback(() => {
+    const host = hostRef.current
+    if (!host) return
+    const margin = 1600
+    const top = host.scrollTop - margin
+    const bottom = host.scrollTop + host.clientHeight + margin
+    let from = Number.MAX_SAFE_INTEGER
+    let to = 0
+    for (const [num, el] of pageRefs.current) {
+      const y = el.offsetTop
+      if (y + el.offsetHeight >= top && y <= bottom) {
+        from = Math.min(from, num)
+        to = Math.max(to, num)
+      }
+    }
+    if (to >= from) {
+      setActiveRange((r) => (r.from === from && r.to === to ? r : { from, to }))
+    }
+  }, [])
 
   const pages = useMemo(() => Array.from({ length: pdf.numPages }, (_, i) => i + 1), [pdf.numPages])
 
@@ -114,6 +141,18 @@ export const PdfView = forwardRef<ViewHandle, Props>(function PdfView(
     [flowMode, goToPage],
   )
 
+  // En modo scroll: restaurar posición inicial y activar el rango visible
+  useEffect(() => {
+    if (flowMode !== 'scrolled') return
+    const id = setTimeout(() => {
+      const el = pageRefs.current.get(currentPageRef.current)
+      if (el && currentPageRef.current > 1) el.scrollIntoView({ block: 'start' })
+      computeActiveRange()
+    }, 80)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flowMode])
+
   // En modo scroll: detectar página visible para progreso
   useEffect(() => {
     if (flowMode !== 'scrolled') return
@@ -124,14 +163,13 @@ export const PdfView = forwardRef<ViewHandle, Props>(function PdfView(
       events.onActivity()
       clearTimeout(t)
       t = setTimeout(() => {
+        computeActiveRange()
         const hostTop = host.getBoundingClientRect().top
+        // Última página cuyo borde superior ya cruzó la línea de lectura
+        // (robusto aunque el punto caiga en el hueco entre páginas).
         let best = 1
         for (const [num, el] of pageRefs.current) {
-          const r = el.getBoundingClientRect()
-          if (r.top <= hostTop + 120 && r.bottom > hostTop + 120) {
-            best = num
-            break
-          }
+          if (el.getBoundingClientRect().top <= hostTop + 150) best = Math.max(best, num)
         }
         currentPageRef.current = best
         setCurrentPage(best)
@@ -143,7 +181,14 @@ export const PdfView = forwardRef<ViewHandle, Props>(function PdfView(
       host.removeEventListener('scroll', onScroll)
       clearTimeout(t)
     }
-  }, [flowMode, events, report])
+  }, [flowMode, events, report, computeActiveRange])
+
+  // Recalcular el rango activo al cambiar el zoom (cambian las alturas)
+  useEffect(() => {
+    if (flowMode !== 'scrolled') return
+    const id = setTimeout(computeActiveRange, 300)
+    return () => clearTimeout(id)
+  }, [zoom, flowMode, computeActiveRange])
 
   // ---------- zoom (botones, ctrl+rueda, pinch) ----------
 
@@ -360,6 +405,7 @@ export const PdfView = forwardRef<ViewHandle, Props>(function PdfView(
           pageNum={p}
           zoom={zoom}
           lazy={flowMode === 'scrolled'}
+          active={flowMode !== 'scrolled' || (p >= activeRange.from && p <= activeRange.to)}
           highlights={highlights.filter((h) => h.anchor.kind === 'pdf' && h.anchor.page === p)}
           ttsRange={ttsRange?.page === p ? ttsRange : null}
           events={events}
@@ -393,43 +439,58 @@ interface PageProps {
   pageNum: number
   zoom: number
   lazy: boolean
+  /** Renderizar solo dentro del rango activo (reciclaje de memoria). */
+  active: boolean
   highlights: Highlight[]
   ttsRange: { start: number; end: number } | null
   events: ReaderEvents
   refCb: (el: HTMLDivElement | null) => void
 }
 
-function PdfPage({ pdf, pageNum, zoom, lazy, highlights, ttsRange, events, refCb }: PageProps) {
+function PdfPage({ pdf, pageNum, zoom, lazy, active, highlights, ttsRange, events, refCb }: PageProps) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const textRef = useRef<HTMLDivElement>(null)
   const hlRef = useRef<HTMLDivElement>(null)
-  const [visible, setVisible] = useState(!lazy)
+  const visible = active
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
   const [textReady, setTextReady] = useState(0)
+  const [renderError, setRenderError] = useState<string | null>(null)
   const renderTask = useRef<{ cancel: () => void } | null>(null)
 
-  // Lazy: solo renderizar cuando se acerca al viewport
+  // Reciclaje: al salir del rango activo, soltar la memoria del canvas.
+  // iOS Safari tiene un presupuesto de canvas limitado y al excederlo
+  // deja los lienzos en blanco sin avisar — esto evita las "hojas
+  // blancas" en libros largos.
   useEffect(() => {
-    if (!lazy) {
-      setVisible(true)
-      return
+    if (visible) return
+    renderTask.current?.cancel()
+    const canvas = canvasRef.current
+    if (canvas && canvas.width > 0) {
+      canvas.width = 0
+      canvas.height = 0
     }
-    const el = wrapRef.current
-    if (!el) return
-    const io = new IntersectionObserver(
-      (entries) => setVisible((v) => v || entries.some((e) => e.isIntersecting)),
-      { rootMargin: '1200px' },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [lazy])
+    if (textRef.current) textRef.current.innerHTML = ''
+    if (hlRef.current) hlRef.current.innerHTML = ''
+  }, [visible])
 
   // Render del canvas + capa de texto
   useEffect(() => {
     if (!visible) return
     let cancelled = false
     ;(async () => {
+      try {
+        await renderPage()
+      } catch (err) {
+        if (!cancelled && (err as Error)?.name !== 'RenderingCancelledException') {
+          console.error(`[pdf] página ${pageNum}:`, err)
+          setRenderError(String((err as Error)?.message ?? err))
+        }
+      }
+    })()
+
+    async function renderPage() {
+      setRenderError(null)
       const page = await pdf.getPage(pageNum)
       const container = wrapRef.current?.parentElement
       if (!container || cancelled) return
@@ -461,8 +522,9 @@ function PdfPage({ pdf, pageNum, zoom, lazy, highlights, ttsRange, events, refCb
       renderTask.current = task
       try {
         await task.promise
-      } catch {
-        return // cancelado
+      } catch (err) {
+        if ((err as Error)?.name === 'RenderingCancelledException') return
+        throw err
       }
       if (cancelled) return
 
@@ -501,7 +563,7 @@ function PdfPage({ pdf, pageNum, zoom, lazy, highlights, ttsRange, events, refCb
         if (w > 0 && expected > 0) el.style.transform = `scaleX(${expected / w})`
       }
       setTextReady((n) => n + 1)
-    })()
+    }
     return () => {
       cancelled = true
     }
@@ -576,6 +638,11 @@ function PdfPage({ pdf, pageNum, zoom, lazy, highlights, ttsRange, events, refCb
       <canvas ref={canvasRef} />
       <div className="pdf-text-layer" ref={textRef} />
       <div className="pdf-hl-layer" ref={hlRef} />
+      {renderError && (
+        <div className="pdf-page-error">
+          No se pudo renderizar la página {pageNum}: {renderError}
+        </div>
+      )}
     </div>
   )
 }

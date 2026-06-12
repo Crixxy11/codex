@@ -32,6 +32,7 @@ export default function ReaderPage() {
   )
 
   const [content, setContent] = useState<{ kind: 'epub'; data: ArrayBuffer } | { kind: 'pdf'; doc: PdfDocument } | { kind: 'text'; text: string } | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [chromeVisible, setChromeVisible] = useState(true)
   const [sel, setSel] = useState<SelectionInfo | null>(null)
   const [hlPopup, setHlPopup] = useState<{ id: string; rect: SelectionInfo['rect'] } | null>(null)
@@ -49,18 +50,24 @@ export default function ReaderPage() {
     if (!book) return
     let alive = true
     ;(async () => {
-      const file = await db.files.get(book.id)
-      if (!file || !alive) return
-      if (book.format === 'epub') {
-        const data = await file.blob.arrayBuffer()
-        if (alive) setContent({ kind: 'epub', data })
-      } else if (book.format === 'pdf') {
-        const data = await file.blob.arrayBuffer()
-        const doc = await getDocumentSafe(data)
-        if (alive) setContent({ kind: 'pdf', doc })
-      } else {
-        const text = await file.blob.text()
-        if (alive) setContent({ kind: 'text', text })
+      try {
+        const file = await db.files.get(book.id)
+        if (!alive) return
+        if (!file) throw new Error('No se encontró el archivo del libro')
+        if (book.format === 'epub') {
+          const data = await file.blob.arrayBuffer()
+          if (alive) setContent({ kind: 'epub', data })
+        } else if (book.format === 'pdf') {
+          const data = await file.blob.arrayBuffer()
+          const doc = await getDocumentSafe(data)
+          if (alive) setContent({ kind: 'pdf', doc })
+        } else {
+          const text = await file.blob.text()
+          if (alive) setContent({ kind: 'text', text })
+        }
+      } catch (err) {
+        console.error('[reader] no se pudo abrir el libro:', err)
+        if (alive) setLoadError(String((err as Error)?.message ?? err))
       }
     })()
     return () => {
@@ -284,7 +291,13 @@ export default function ReaderPage() {
       </header>
 
       <div className="reader-content">
-        {!content && <div className="empty-state"><p>{t('reader.loading')}</p></div>}
+        {!content && !loadError && <div className="empty-state"><p>{t('reader.loading')}</p></div>}
+        {loadError && (
+          <div className="empty-state">
+            <span className="ornament">⚠</span>
+            <p style={{ color: 'var(--danger)' }}>{loadError}</p>
+          </div>
+        )}
         {content?.kind === 'text' && (
           <TextView
             ref={viewRef}

@@ -340,6 +340,19 @@
   mix-blend-mode: multiply;
 }
 
+.pdf-page-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--danger);
+  background: var(--surface);
+}
+
 .pdf-zoom-controls {
   position: absolute;
   right: 14px;

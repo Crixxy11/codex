@@ -10,6 +10,10 @@ const es = {
   // Biblioteca
   'library.title': 'Codex',
   'library.subtitle': 'Tu biblioteca personal',
+  'greeting.morning': 'Buenos días.',
+  'greeting.afternoon': 'Buenas tardes.',
+  'greeting.evening': 'Buenas noches.',
+  'greeting.question': '¿Qué leemos hoy?',
   'library.empty': 'Tu biblioteca espera su primer libro',
   'library.add': 'Añadir libro',
   'library.addFile': 'Subir EPUB o PDF',
@@ -165,6 +169,10 @@ const en: typeof es = {
 
   'library.title': 'Codex',
   'library.subtitle': 'Your personal library',
+  'greeting.morning': 'Good morning.',
+  'greeting.afternoon': 'Good afternoon.',
+  'greeting.evening': 'Good evening.',
+  'greeting.question': 'What are we reading today?',
   'library.empty': 'Your library awaits its first book',
   'library.add': 'Add book',
   'library.addFile': 'Upload EPUB or PDF',

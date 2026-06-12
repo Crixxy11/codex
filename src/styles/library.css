@@ -8,6 +8,54 @@
   flex-wrap: wrap;
 }
 
+/* Etiqueta etérea desenfocada sobre el título */
+.lib-blur-label {
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  margin: 10px 4px 0;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--ink-soft);
+  filter: blur(3px);
+}
+
+/* Saludo con máquina de escribir */
+.lib-greeting {
+  margin: 6px 4px 18px;
+  font-family: var(--font-reading);
+  font-size: clamp(16px, 3vw, 21px);
+  line-height: 1.35;
+  color: var(--ink-soft);
+  min-height: 1.4em;
+}
+
+.type-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  margin-left: 2px;
+  background: var(--accent);
+  vertical-align: middle;
+  animation: cursor-blink 1s step-end infinite;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Entrada en escena: fade + slide-up */
+.lib-rise {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.lib-rise.in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .lib-toolbar {
   display: flex;
   flex-direction: column;

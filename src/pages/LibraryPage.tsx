@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
@@ -13,6 +13,7 @@ import {
   saveReview,
 } from '../lib/library'
 import { useT } from '../stores/settings'
+import { useTypewriter } from '../lib/useTypewriter'
 import { useToasts } from '../stores/toast'
 import { CoverImage } from '../components/CoverImage'
 import {
@@ -34,6 +35,22 @@ import { fmtDate } from '../lib/text'
 
 type Filter = 'all' | 'favorites' | BookStatus
 
+/** Saludo con efecto máquina de escribir, según la hora del día. */
+function Greeting() {
+  const t = useT()
+  const h = new Date().getHours()
+  const phrase = `${
+    h < 12 ? t('greeting.morning') : h < 20 ? t('greeting.afternoon') : t('greeting.evening')
+  } ${t('greeting.question')}`
+  const { displayed, done } = useTypewriter(phrase, 38, 600)
+  return (
+    <p className="lib-greeting" aria-label={phrase}>
+      {displayed || ' '}
+      {!done && <span className="type-cursor" />}
+    </p>
+  )
+}
+
 export default function LibraryPage() {
   const t = useT()
   const navigate = useNavigate()
@@ -50,6 +67,12 @@ export default function LibraryPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const coverRef = useRef<HTMLInputElement>(null)
   const coverForRef = useRef<string | null>(null)
+  // Entrada en escena de filtros y galería (fade + slide-up a los 400 ms)
+  const [risen, setRisen] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setRisen(true), 400)
+    return () => clearTimeout(timer)
+  }, [])
 
   const filtered = useMemo(() => {
     let list = books ?? []
@@ -97,12 +120,13 @@ export default function LibraryPage() {
     <div className="page">
       <div className="lib-header">
         <div>
+          <p className="lib-blur-label">{t('library.subtitle')}</p>
           <h1 className="page-title">{t('library.title')}</h1>
-          <p className="page-subtitle">{t('library.subtitle')}</p>
+          <Greeting />
         </div>
       </div>
 
-      <div className="lib-toolbar">
+      <div className={`lib-toolbar lib-rise ${risen ? 'in' : ''}`}>
         <div className="lib-search">
           <IconSearch />
           <input
@@ -131,12 +155,12 @@ export default function LibraryPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="empty-state">
+        <div className={`empty-state lib-rise ${risen ? 'in' : ''}`}>
           <span className="ornament">❦</span>
           <p>{t('library.empty')}</p>
         </div>
       ) : (
-        <div className="book-grid">
+        <div className={`book-grid lib-rise ${risen ? 'in' : ''}`}>
           {filtered.map((b) => (
             <BookCard
               key={b.id}

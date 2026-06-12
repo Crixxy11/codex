@@ -1,5 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { registerSW } from 'virtual:pwa-register'
+
+// Auto-actualización: al detectar una versión nueva, recargar de inmediato
+// para que los deploys lleguen a la PWA instalada sin pasos manuales.
+registerSW({ immediate: true })
 
 // Tipografías (autoalojadas, funcionan offline)
 import '@fontsource-variable/literata'

@@ -1,5 +1,8 @@
-import * as pdfjs from 'pdfjs-dist'
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+// Build "legacy" de pdf.js: idéntico en navegadores modernos, pero
+// incluye los polyfills (Promise.withResolvers, etc.) que el build
+// normal de pdf.js v6 asume — sin él, iOS < 17.4 no renderiza nada.
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs'
+import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 
