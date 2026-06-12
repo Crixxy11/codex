@@ -74,11 +74,17 @@ export const EpubView = forwardRef<ViewHandle, Props>(function EpubView(
       syncHighlights()
     })
 
-    // Selección de texto dentro del iframe
-    rendition.on('selected', (cfiRange: string, contents: Contents) => {
+    // Selección de texto dentro del iframe. Una sola ruta de emisión
+    // usada por el evento 'selected' (ratón) y por selectionchange
+    // (long-press en iOS, que no dispara 'selected' de forma fiable).
+    const emitEpubSelection = (contents: Contents) => {
       try {
-        const range = contents.window.getSelection()?.getRangeAt(0)
-        if (!range) return
+        const sel = contents.window.getSelection()
+        if (!sel || sel.isCollapsed || sel.rangeCount === 0) return
+        const range = sel.getRangeAt(0)
+        if (!range.toString().trim()) return
+        const cfi = (contents as unknown as { cfiFromRange: (r: Range) => string }).cfiFromRange(range)
+        if (!cfi) return
         const rect = range.getBoundingClientRect()
         const frame = contents.document.defaultView?.frameElement?.getBoundingClientRect()
         if (!frame) return
@@ -93,14 +99,16 @@ export const EpubView = forwardRef<ViewHandle, Props>(function EpubView(
             bottom: rect.bottom + frame.top,
           },
           quote: range.toString(),
-          anchor: { kind: 'epub', cfi: cfiRange, sectionIndex: contents.sectionIndex },
+          anchor: { kind: 'epub', cfi, sectionIndex: contents.sectionIndex },
           chapter,
           speak: () => startTtsFromPoint(contents, caret, false),
         })
       } catch {
         /* selección no mapeable */
       }
-    })
+    }
+
+    rendition.on('selected', (_cfiRange: string, contents: Contents) => emitEpubSelection(contents))
 
     rendition.on('markClicked', (_cfiRange: string, dataAttrs: { id?: string }) => {
       const id = dataAttrs?.id
@@ -118,6 +126,12 @@ export const EpubView = forwardRef<ViewHandle, Props>(function EpubView(
     // Interacción dentro de cada capítulo renderizado
     rendition.hooks.content.register((contents: Contents) => {
       const doc = contents.document
+      // Long-press en iOS: emitir selección con debounce
+      let selTimer: ReturnType<typeof setTimeout>
+      doc.addEventListener('selectionchange', () => {
+        clearTimeout(selTimer)
+        selTimer = setTimeout(() => emitEpubSelection(contents), 450)
+      })
       doc.addEventListener('keydown', (e: KeyboardEvent) => {
         if (e.key === 'ArrowRight' || e.key === 'PageDown') void rendition.next()
         if (e.key === 'ArrowLeft' || e.key === 'PageUp') void rendition.prev()
@@ -212,8 +226,16 @@ export const EpubView = forwardRef<ViewHandle, Props>(function EpubView(
         'line-height': `${settings.lineHeight} !important`,
         'padding-left': '6px',
         'padding-right': '6px',
-        'max-width': `${settings.measure}ch`,
+        'max-width': settings.measure >= 96 ? 'none' : `${settings.measure}ch`,
         margin: '0 auto',
+      },
+      // Algunos editores limitan el ancho con wrappers propios: liberarlos
+      // para que el texto use siempre la medida elegida.
+      'body > *': {
+        'max-width': '100% !important',
+        'margin-left': '0 !important',
+        'margin-right': '0 !important',
+        width: 'auto !important',
       },
       'p, li, blockquote, div': {
         color: `${themeVars.ink} !important`,

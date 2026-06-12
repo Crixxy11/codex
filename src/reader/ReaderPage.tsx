@@ -246,7 +246,8 @@ export default function ReaderPage() {
     '--reader-font': fontCss(reader.fontFamily),
     '--reader-size': `${reader.fontSize}px`,
     '--reader-leading': String(reader.lineHeight),
-    '--reader-measure': `${reader.measure}ch`,
+    // En el tope del slider, el texto ocupa todo el ancho disponible
+    '--reader-measure': reader.measure >= 96 ? '100%' : `${reader.measure}ch`,
   } as React.CSSProperties
 
   if (!book) return null

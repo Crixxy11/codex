@@ -300,21 +300,38 @@ export const PdfView = forwardRef<ViewHandle, Props>(function PdfView(
     [pdf, language, events, goToPage],
   )
 
+  const emitSelection = useCallback((): boolean => {
+    const sel = selectionInfo()
+    if (!sel) return false
+    events.onSelection({
+      rect: sel.rect,
+      quote: sel.quote,
+      anchor: { kind: 'pdf', page: sel.page, start: sel.start, end: sel.end },
+      chapter: `p. ${sel.page}`,
+      speak: () => void startTtsAt(sel.page, sel.start),
+    })
+    return true
+  }, [selectionInfo, events, startTtsAt])
+
+  // Selección por long-press en iOS: selectionchange con debounce.
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>
+    const onChange = () => {
+      clearTimeout(t)
+      t = setTimeout(() => void emitSelection(), 450)
+    }
+    document.addEventListener('selectionchange', onChange)
+    return () => {
+      document.removeEventListener('selectionchange', onChange)
+      clearTimeout(t)
+    }
+  }, [emitSelection])
+
   const handlePointerUp = useCallback(
     (e: React.PointerEvent) => {
       events.onActivity()
       setTimeout(async () => {
-        const sel = selectionInfo()
-        if (sel) {
-          events.onSelection({
-            rect: sel.rect,
-            quote: sel.quote,
-            anchor: { kind: 'pdf', page: sel.page, start: sel.start, end: sel.end },
-            chapter: `p. ${sel.page}`,
-            speak: () => void startTtsAt(sel.page, sel.start),
-          })
-          return
-        }
+        if (emitSelection()) return
         events.onSelection(null)
         if ((e.target as HTMLElement).closest('.pdf-hl-rect, .pdf-zoom-controls')) return
         const pos = await offsetFromPoint(e.clientX, e.clientY)
@@ -322,7 +339,7 @@ export const PdfView = forwardRef<ViewHandle, Props>(function PdfView(
         else events.onBlankTap()
       }, 10)
     },
-    [events, selectionInfo, offsetFromPoint, startTtsAt],
+    [events, emitSelection, offsetFromPoint, startTtsAt],
   )
 
   // ---------- render ----------

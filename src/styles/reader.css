@@ -233,7 +233,7 @@
 
 .text-pager-clip {
   height: 100%;
-  max-width: calc(var(--reader-measure, 66ch) + 64px);
+  max-width: min(100%, calc(var(--reader-measure, 66ch) + 64px));
   margin: 0 auto;
   overflow: hidden;
 }

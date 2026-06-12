@@ -264,26 +264,45 @@ export const TextView = forwardRef<ViewHandle, Props>(function TextView(
 
   // ---------- selección y tap ----------
 
+  /** Lee la selección nativa y la emite si es válida. Devuelve true si había. */
+  const emitSelection = useCallback((): boolean => {
+    const sel = window.getSelection()
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) return false
+    const range = sel.getRangeAt(0)
+    if (!contentRef.current?.contains(range.commonAncestorContainer)) return false
+    const start = globalOffset(range.startContainer, range.startOffset)
+    const end = globalOffset(range.endContainer, range.endOffset)
+    if (start == null || end == null || end <= start) return false
+    events.onSelection({
+      rect: range.getBoundingClientRect(),
+      quote: text.slice(start, end),
+      anchor: { kind: 'text', start, end },
+      speak: () => startTtsAt(start),
+    })
+    return true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events, globalOffset, text])
+
+  // Selección por long-press en táctil: el pointerup no basta en iOS,
+  // así que escuchamos selectionchange con debounce.
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>
+    const onChange = () => {
+      clearTimeout(t)
+      t = setTimeout(() => void emitSelection(), 450)
+    }
+    document.addEventListener('selectionchange', onChange)
+    return () => {
+      document.removeEventListener('selectionchange', onChange)
+      clearTimeout(t)
+    }
+  }, [emitSelection])
+
   const handlePointerUp = useCallback(
     (e: React.PointerEvent) => {
       events.onActivity()
       setTimeout(() => {
-        const sel = window.getSelection()
-        if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
-          const range = sel.getRangeAt(0)
-          if (!contentRef.current?.contains(range.commonAncestorContainer)) return
-          const start = globalOffset(range.startContainer, range.startOffset)
-          const end = globalOffset(range.endContainer, range.endOffset)
-          if (start == null || end == null || end <= start) return
-          const rect = range.getBoundingClientRect()
-          events.onSelection({
-            rect,
-            quote: text.slice(start, end),
-            anchor: { kind: 'text', start, end },
-            speak: () => startTtsAt(start),
-          })
-          return
-        }
+        if (emitSelection()) return
         events.onSelection(null)
         // Tap simple sobre una palabra → TTS desde ahí
         const target = e.target as HTMLElement

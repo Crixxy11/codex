@@ -43,7 +43,15 @@ export function SelectionPopup({ rect, onHighlight, onNote, onSpeak, onDelete, o
   }, [onClose])
 
   return createPortal(
-    <div className="sel-popup" style={{ left: cx - width / 2, top }} role="menu">
+    <div
+      className="sel-popup"
+      style={{ left: cx - width / 2, top }}
+      role="menu"
+      // Evita que el tap limpie la selección de texto (iOS) antes de
+      // que el botón ejecute su acción.
+      onPointerDown={(e) => e.preventDefault()}
+      onMouseDown={(e) => e.preventDefault()}
+    >
       {onHighlight && (
         <button onClick={onHighlight} title={t('reader.highlight')} aria-label={t('reader.highlight')}>
           <IconHighlighter />
@@ -194,7 +202,7 @@ export function TypographySheet({ onClose }: { onClose: () => void }) {
             onChange={(e) => setReader({ measure: Number(e.target.value) })}
           />
           <span style={{ fontVariantNumeric: 'tabular-nums', width: 38, textAlign: 'right' }}>
-            {reader.measure}
+            {reader.measure >= 96 ? '∞' : reader.measure}
           </span>
         </div>
 

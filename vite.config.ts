@@ -48,6 +48,16 @@ export default defineConfig({
             },
           },
           {
+            // Recursos de pdf.js (cmaps, fuentes, ICC) bajo demanda
+            urlPattern: /\/pdf\/(cmaps|standard_fonts|iccs|wasm)\//,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'pdfjs-assets',
+              expiration: { maxEntries: 80 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/onnxruntime-web/,
             handler: 'CacheFirst',
             options: {
