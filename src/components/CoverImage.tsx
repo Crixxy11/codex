@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db'
+import { db, binToBlob } from '../db'
 import { coverDataUrl } from '../lib/covers'
 import type { Book } from '../types'
 
@@ -14,7 +14,7 @@ export function CoverImage({ book, className }: { book: Book; className?: string
       setUrl(null)
       return
     }
-    const u = URL.createObjectURL(cover.blob)
+    const u = URL.createObjectURL(binToBlob(cover))
     setUrl(u)
     return () => URL.revokeObjectURL(u)
   }, [cover])

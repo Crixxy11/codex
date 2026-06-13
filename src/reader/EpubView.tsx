@@ -91,7 +91,9 @@ export const EpubView = forwardRef<ViewHandle, Props>(function EpubView(
       height: '100%',
       flow: flowMode === 'paginated' ? 'paginated' : 'scrolled',
       spread: 'none',
-      allowScriptedContent: false,
+      // Safari/WebKit bloquea la inyección de capítulos en iframes
+      // sandbox sin allow-scripts: sin esto, el libro se ve VACÍO.
+      allowScriptedContent: true,
     })
     rendRef.current = rendition
     drawnHl.current.clear()

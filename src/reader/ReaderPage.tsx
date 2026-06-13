@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, uid, logEvent } from '../db'
+import { db, uid, logEvent, binToBlob } from '../db'
 import { updateProgress } from '../lib/library'
 import { SessionTracker } from '../lib/session'
 import { getDocumentSafe, type PdfDocument } from '../lib/pdf'
@@ -53,15 +53,16 @@ export default function ReaderPage() {
         const file = await db.files.get(book.id)
         if (!alive) return
         if (!file) throw new Error('No se encontró el archivo del libro')
+        const blob = binToBlob(file)
         if (book.format === 'epub') {
-          const data = await file.blob.arrayBuffer()
+          const data = await blob.arrayBuffer()
           if (alive) setContent({ kind: 'epub', data })
         } else if (book.format === 'pdf') {
-          const data = await file.blob.arrayBuffer()
+          const data = await blob.arrayBuffer()
           const doc = await getDocumentSafe(data)
           if (alive) setContent({ kind: 'pdf', doc })
         } else {
-          const text = await file.blob.text()
+          const text = await blob.text()
           if (alive) setContent({ kind: 'text', text })
         }
       } catch (err) {
@@ -121,25 +122,23 @@ export default function ReaderPage() {
     async (req: TtsStartRequest) => {
       if (!book) return
       let voiceId = ttsSettings.voiceId
+      const want = (book.language ?? lang).slice(0, 2).toLowerCase()
       if (!voiceId || voiceId.startsWith('system:')) {
         const voices = await loadSystemVoices()
-        const want = (book.language ?? lang).slice(0, 2).toLowerCase()
         const exists = voiceId && voices.some((v) => `system:${v.voiceURI}` === voiceId)
         if (!exists) {
           const match =
             voices.find((v) => v.lang.toLowerCase().startsWith(want) && v.localService) ??
             voices.find((v) => v.lang.toLowerCase().startsWith(want)) ??
             voices[0]
-          if (!match) {
-            show('No hay voces disponibles')
-            return
-          }
-          voiceId = `system:${match.voiceURI}`
+          // En iOS getVoices() puede venir vacío hasta el primer speak:
+          // hablar igualmente con la voz por defecto del sistema.
+          voiceId = match ? `system:${match.voiceURI}` : `system:default:${want}`
         }
       }
       let artworkUrl: string | undefined
       const cover = await db.covers.get(book.id)
-      if (cover) artworkUrl = URL.createObjectURL(cover.blob)
+      if (cover) artworkUrl = URL.createObjectURL(binToBlob(cover))
 
       void logEvent('tts_started', book.id)
       await tts.start(

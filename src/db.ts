@@ -34,6 +34,13 @@ export function uid(): string {
   return crypto.randomUUID()
 }
 
+/** Blob desde un registro binario (nuevo: data/type; legado: blob). */
+export function binToBlob(rec: { data?: ArrayBuffer; type?: string; blob?: Blob }): Blob {
+  if (rec.data) return new Blob([rec.data], { type: rec.type ?? 'application/octet-stream' })
+  if (rec.blob) return rec.blob
+  return new Blob([])
+}
+
 export async function logEvent(
   type: LogEvent['type'],
   bookId?: string,

@@ -48,17 +48,28 @@ export interface Book {
   updatedAt: number
 }
 
+/**
+ * Binarios como ArrayBuffer, NUNCA como Blob: Safari/WebKit falla al
+ * clonar Blobs hacia IndexedDB ("Error preparing Blob/File data").
+ * `blob` queda solo como campo legado de datos antiguos (Chromium).
+ */
 export interface BookFile {
   bookId: string
-  /** EPUB/PDF binario, o texto plano para format 'text'. */
-  blob: Blob
+  /** EPUB/PDF binario, o texto plano (UTF-8) para format 'text'. */
+  data?: ArrayBuffer
+  type?: string
   name?: string
+  /** legado */
+  blob?: Blob
 }
 
 export interface Cover {
   bookId: string
-  blob: Blob
+  data?: ArrayBuffer
+  type?: string
   updatedAt: number
+  /** legado */
+  blob?: Blob
 }
 
 export interface Highlight {

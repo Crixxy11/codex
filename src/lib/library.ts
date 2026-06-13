@@ -32,14 +32,14 @@ export async function addEpub(file: File): Promise<Book> {
     language: meta.language || undefined,
     format: 'epub',
   })
-  await db.files.put({ bookId: record.id, blob: new Blob([buf]), name: file.name })
+  await db.files.put({ bookId: record.id, data: buf, type: 'application/epub+zip', name: file.name })
 
   // Portada embebida del EPUB, si existe
   try {
     const coverUrl = await book.coverUrl()
     if (coverUrl) {
-      const blob = await (await fetch(coverUrl)).blob()
-      await db.covers.put({ bookId: record.id, blob, updatedAt: Date.now() })
+      const coverBuf = await (await fetch(coverUrl)).arrayBuffer()
+      await db.covers.put({ bookId: record.id, data: coverBuf, type: 'image/*', updatedAt: Date.now() })
     }
   } catch {
     /* sin portada embebida */
@@ -86,7 +86,7 @@ export async function addPdf(file: File): Promise<Book> {
     /* metadatos opcionales */
   }
   const record = baseBook({ title, author, format: 'pdf' })
-  await db.files.put({ bookId: record.id, blob: new Blob([buf], { type: 'application/pdf' }), name: file.name })
+  await db.files.put({ bookId: record.id, data: buf, type: 'application/pdf', name: file.name })
   await db.books.put(record)
   await logEvent('book_added', record.id, { format: 'pdf', pages: pdf.numPages })
 
@@ -116,7 +116,7 @@ export async function addPastedText(title: string, author: string, text: string)
     format: 'text',
     wordCount: countWords(text),
   })
-  await db.files.put({ bookId: record.id, blob: new Blob([text], { type: 'text/plain' }) })
+  await db.files.put({ bookId: record.id, data: new TextEncoder().encode(text).buffer as ArrayBuffer, type: 'text/plain' })
   await db.books.put(record)
   await logEvent('book_added', record.id, { format: 'text' })
   return record
@@ -147,7 +147,8 @@ export async function toggleFavorite(bookId: string): Promise<void> {
 }
 
 export async function setCustomCover(bookId: string, file: File): Promise<void> {
-  await db.covers.put({ bookId, blob: file, updatedAt: Date.now() })
+  const data = await file.arrayBuffer()
+  await db.covers.put({ bookId, data, type: file.type, updatedAt: Date.now() })
   await db.books.update(bookId, { hasCustomCover: true, updatedAt: Date.now() })
   await logEvent('cover_changed', bookId)
 }

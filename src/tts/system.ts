@@ -57,6 +57,9 @@ export class SystemEngine implements TtsEngine {
       if (voice) {
         u.voice = voice
         u.lang = voice.lang
+      } else if (uri.startsWith('default:')) {
+        // Voz por defecto del sistema, solo fijando el idioma
+        u.lang = uri.slice('default:'.length)
       }
       u.rate = Math.min(2.5, Math.max(0.5, rate))
       u.onend = () => {

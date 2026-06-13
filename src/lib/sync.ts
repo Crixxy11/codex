@@ -1,7 +1,7 @@
 // Export / import de la biblioteca completa como archivo .codex (zip).
 // El import hace merge: nunca borra, resuelve conflictos por updatedAt.
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate'
-import { db } from '../db'
+import { db, binToBlob } from '../db'
 import type { Book, Highlight, KV, LogEvent, ReadingSession } from '../types'
 
 interface Manifest {
@@ -35,18 +35,18 @@ export async function exportLibrary(): Promise<Blob> {
     sessions,
     events,
     kv,
-    files: files.map((f) => ({ bookId: f.bookId, name: f.name, type: f.blob.type })),
-    covers: covers.map((c) => ({ bookId: c.bookId, type: c.blob.type, updatedAt: c.updatedAt })),
+    files: files.map((f) => ({ bookId: f.bookId, name: f.name, type: f.type ?? f.blob?.type ?? '' })),
+    covers: covers.map((c) => ({ bookId: c.bookId, type: c.type ?? c.blob?.type ?? '', updatedAt: c.updatedAt })),
   }
 
   const entries: Record<string, Uint8Array> = {
     'manifest.json': strToU8(JSON.stringify(manifest)),
   }
   for (const f of files) {
-    entries[`files/${f.bookId}`] = new Uint8Array(await f.blob.arrayBuffer())
+    entries[`files/${f.bookId}`] = new Uint8Array(await binToBlob(f).arrayBuffer())
   }
   for (const c of covers) {
-    entries[`covers/${c.bookId}`] = new Uint8Array(await c.blob.arrayBuffer())
+    entries[`covers/${c.bookId}`] = new Uint8Array(await binToBlob(c).arrayBuffer())
   }
 
   const zipped = zipSync(entries, { level: 6 })
@@ -109,7 +109,8 @@ export async function importLibrary(file: File): Promise<ImportResult> {
         if (!(await db.files.get(f.bookId))) {
           await db.files.put({
             bookId: f.bookId,
-            blob: new Blob([bytes.buffer as ArrayBuffer], { type: f.type }),
+            data: bytes.buffer as ArrayBuffer,
+            type: f.type,
             name: f.name,
           })
         }
@@ -121,7 +122,8 @@ export async function importLibrary(file: File): Promise<ImportResult> {
         if (!existing || c.updatedAt > existing.updatedAt) {
           await db.covers.put({
             bookId: c.bookId,
-            blob: new Blob([bytes.buffer as ArrayBuffer], { type: c.type }),
+            data: bytes.buffer as ArrayBuffer,
+            type: c.type,
             updatedAt: c.updatedAt,
           })
         }
